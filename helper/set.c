@@ -29,6 +29,8 @@
 #include "helper/set.h"
 
 #include "zend_interfaces.h"
+#include "ext/spl/spl_iterators.h"
+#include "ext/spl/spl_array.h"
 
 zend_class_entry *slim_helper_set_ce;
 
@@ -118,6 +120,8 @@ PHP_METHOD(slim_helper_set, offsetSet)
 
 	Z_ADDREF_P(pzval);
 	zend_hash_update(Z_ARRVAL_P(data), offset, offset_len + 1, (void *) &pzval, sizeof(zval *), NULL);
+
+	RETURN_TRUE;
 }
 
 
@@ -145,7 +149,7 @@ PHP_METHOD(slim_helper_set, normalizeKey)
 		RETURN_FALSE;
 	}
 
-	RETURN_ZVAL(key, 0, 0);
+	RETURN_ZVAL(key, 1, 0);
 }
 
 
@@ -168,12 +172,16 @@ PHP_METHOD(slim_helper_set, set)
 
 	Z_ADDREF_P(value);
 	add_assoc_zval(data, Z_STRVAL_P(normalized_key), value);
+
+	//php_printf("slim_helper_set key: %s\n", Z_STRVAL_P(normalized_key));
+
+	RETURN_TRUE;
 }
 
 
 PHP_METHOD(slim_helper_set, replace)
 {
-	zval *items, *key_pzval;
+	zval *items, *key_pzval, *key, *value, *function_name, *retval;
 	zval **ppzval;
 
 	int key_type;
@@ -182,6 +190,9 @@ PHP_METHOD(slim_helper_set, replace)
 
 	HashTable *items_ht;
 
+	//MAKE_STD_ZVAL(function_name);
+	//ZVAL_STRING(function_name, "set", 1);
+
 	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "a", &items) == FAILURE){
 		RETURN_FALSE;
 	}
@@ -189,7 +200,10 @@ PHP_METHOD(slim_helper_set, replace)
 	items_ht = Z_ARRVAL_P(items);
 	MAKE_STD_ZVAL(key_pzval);
 
+	//zval *params[] = { key_pzval, *ppzval };
+
 	zend_hash_internal_pointer_reset(items_ht);
+
 	while(zend_hash_get_current_data(items_ht, (void **)&ppzval) == SUCCESS){
 
 		zend_hash_get_current_key(items_ht, &str_index, &num_index, 0);  // get array key
@@ -213,14 +227,45 @@ PHP_METHOD(slim_helper_set, replace)
 			continue;
 		}
 
+
 		//TODO:: call_user_function
 		zend_call_method(&getThis(), slim_helper_set_ce, NULL,
 						ZEND_STRL("set"), NULL, 2, key_pzval, *ppzval TSRMLS_DC);
+
+		//Z_ADDREF_P(function_name);
+		//call_user_function(NULL, &getThis(), function_name, retval, 2, params);
 
 		zend_hash_move_forward(items_ht);
 	}
 
 	zend_hash_internal_pointer_reset(items_ht);
+}
+
+
+PHP_METHOD(slim_helper_set, count)
+{
+	zval* data;
+	data = GET_CLASS_PROPERTY(slim_helper_set_ce, "data");
+
+	RETURN_LONG(zend_hash_num_elements(Z_ARRVAL_P(data)));
+}
+
+
+PHP_METHOD(slim_helper_set, getIterator)
+{
+	zval *data, *retval, *function_name;
+	MAKE_STD_ZVAL(function_name);
+	ZVAL_STRING(function_name, "__construct", 1);
+
+	data = GET_CLASS_PROPERTY(slim_helper_set_ce, "data");
+
+	zval *params[] = { data };
+
+	slim_debug(function_name);
+	slim_debug(params[0]);
+
+	object_init_ex(return_value, spl_ce_ArrayIterator);
+	call_user_function(NULL, &return_value, function_name, retval, 1, params);
 }
 
 
@@ -254,6 +299,12 @@ ZEND_BEGIN_ARG_INFO_EX(slim_helper_set_normalize_key, 0, 0, 1)
 	ZEND_ARG_INFO(0, key)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO_EX(slim_helper_set_count, 0, 0, 0)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(slim_helper_set_get_iterator, 0, 0, 0)
+ZEND_END_ARG_INFO()
+
 static zend_function_entry slim_helper_set_methods[] = {
 	ZEND_ME(slim_helper_set,    __construct,  	NULL,   ZEND_ACC_PUBLIC|ZEND_ACC_CTOR)
 	ZEND_ME(slim_helper_set,    offsetExists,  	slim_helper_set_offset_exists,   ZEND_ACC_PUBLIC)
@@ -264,6 +315,8 @@ static zend_function_entry slim_helper_set_methods[] = {
 	ZEND_ME(slim_helper_set,    set,  			slim_helper_set_set,   ZEND_ACC_PUBLIC)
 	ZEND_ME(slim_helper_set,    replace,  		slim_helper_set_replace,   ZEND_ACC_PUBLIC)
 	ZEND_ME(slim_helper_set,    normalizeKey,  	slim_helper_set_normalize_key,   ZEND_ACC_PUBLIC)
+	ZEND_ME(slim_helper_set,    count,  		slim_helper_set_count,   ZEND_ACC_PUBLIC)
+	ZEND_ME(slim_helper_set,    getIterator,  	slim_helper_set_get_iterator,   ZEND_ACC_PUBLIC)
 	NULL, NULL, NULL
 };
 
@@ -273,6 +326,9 @@ ZEND_MINIT_FUNCTION(slim_helper_set){
 
 	// implements ArrayAccess
 	zend_class_implements(slim_helper_set_ce TSRMLS_CC, 1, zend_ce_arrayaccess);
+
+	zend_class_implements(slim_helper_set_ce TSRMLS_CC, 1, spl_ce_Countable);
+	zend_class_implements(slim_helper_set_ce TSRMLS_CC, 1, zend_ce_aggregate);
 
 	zend_declare_property_null(slim_helper_set_ce, ZEND_STRL("data"), ZEND_ACC_PROTECTED TSRMLS_CC);
 
