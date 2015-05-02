@@ -1,4 +1,6 @@
+.*
 .deps
+test.php
 *.lo
 *.la
 .libs

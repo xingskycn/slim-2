@@ -31,6 +31,24 @@
 #include "slim_log.h"
 #include "helper/set.h"
 
+/**
+ * Call php var_dump()
+ */
+void slim_debug(zval* data)
+{
+	php_printf("\n------start-------\n");
+
+    zval *function_name, *return_value;
+    MAKE_STD_ZVAL(function_name);
+    MAKE_STD_ZVAL(return_value);
+
+    ZVAL_STRING(function_name, "var_dump", 1);
+
+    zval* params = {data};
+    call_user_function(CG(function_table), NULL, function_name, return_value, 1, &params TSRMLS_CC);
+
+    php_printf("\n-------end--------\n");
+}
 
 PHP_MINIT_FUNCTION(slim)
 {

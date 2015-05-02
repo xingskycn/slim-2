@@ -40,7 +40,6 @@ extern zend_module_entry slim_module_entry;
 
 #define SLIM_VERSION "2.6.1"
 
-
 #define EXTENSION_EXISTS(ext_name) \
 		zend_hash_exists(&module_registry, )
 
@@ -52,6 +51,14 @@ extern zend_module_entry slim_module_entry;
 
 #define SLIM_MODULE_STARTUP(module) \
 		ZEND_MODULE_STARTUP_N(module)(INIT_FUNC_ARGS_PASSTHRU);
+
+#define GET_CLASS_PROPERTY(ce, property)  \
+		zend_read_property(ce, getThis(), ZEND_STRL(property), 1 TSRMLS_CC);
+
+void slim_debug(zval* data);
+
+#define SLIM_STRACE(str, ...)    \
+	{ php_printf("\nFile: %s \033[34m [Line:%d] \033[0m \nFunction: \033[31m [%s] \033[0m \nTraceInfo:\033[32m "str" \033[0m \n", __FILE__, __LINE__, __FUNCTION__, ##__VA_ARGS__); }
 
 
 #ifdef ZTS
