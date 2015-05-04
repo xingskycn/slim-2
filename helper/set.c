@@ -34,27 +34,30 @@
 
 zend_class_entry *slim_helper_set_ce;
 
-
+/**
+ * Constructor
+ */
 PHP_METHOD(slim_helper_set, __construct)
 {
-	zval *items;
-	MAKE_STD_ZVAL(items);
-	array_init(items);
+	zval *items, *data_array, *function_name, *retval;
+	zval *params[1];
 
 	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "|z", &items) == FAILURE){
 		return;
 	}
 
-	zval *data_array;
 	MAKE_STD_ZVAL(data_array);
 	array_init(data_array);
 	zend_update_property(slim_helper_set_ce, getThis(), ZEND_STRL("data"), data_array);
 
 	//$this->replace($items);
 	if(zend_hash_num_elements(Z_ARRVAL_P(items)) > 0){
-		//TODO:: call_user_function
-		zend_call_method(&getThis(), slim_helper_set_ce, NULL,
-				         ZEND_STRL("replace"), NULL, 1, items, NULL TSRMLS_DC);
+
+		MAKE_STD_ZVAL(function_name);
+		ZVAL_STRING(function_name, "replace", 0);
+		params[0] = items;
+
+		call_user_function(NULL, &getThis(), function_name, retval, 1, params TSRMLS_CC);
 	}
 }
 
@@ -97,7 +100,7 @@ PHP_METHOD(slim_helper_set, offsetGet)
 	data = GET_CLASS_PROPERTY(slim_helper_set_ce, "data");
 
 	if(IS_ARRAY == Z_TYPE_P(data) ){
-		if(zend_hash_find(Z_ARRVAL_P(data), offset, offset_len, (void **)&ppzval) == SUCCESS){
+		if(zend_hash_find(Z_ARRVAL_P(data), offset, offset_len +1, (void **)&ppzval) == SUCCESS){
 			RETURN_ZVAL(*ppzval, 1, 0);
 		}
 	}
@@ -155,33 +158,110 @@ PHP_METHOD(slim_helper_set, normalizeKey)
 
 PHP_METHOD(slim_helper_set, set)
 {
-	zval *key, *value, *data, *normalized_key;
+	char *key_str;
+	ulong key_len;
 
-	if(zend_parse_parameters(ZEND_NUM_ARGS()TSRMLS_CC, "zz", &key, &value) == FAILURE){
+	zval *key_pval, *value, *data;
+
+	if(zend_parse_parameters(ZEND_NUM_ARGS()TSRMLS_CC, "sz", &key_str, &key_len, &value TSRMLS_CC) == FAILURE){
 		RETURN_FALSE;
 	}
 
+	MAKE_STD_ZVAL(key_pval);
+	ZVAL_STRING(key_pval, key_str, 1);
+
+	zval *params[] = {key_pval};
+
 	data = GET_CLASS_PROPERTY(slim_helper_set_ce, "data");
 
-	MAKE_STD_ZVAL(normalized_key);
-	//$this->normalizeKey($key)
-	zend_call_method(&getThis(), slim_helper_set_ce, NULL,
-					ZEND_STRL("normalizekey"), &normalized_key, 1, key, NULL TSRMLS_DC);
-
-	convert_to_string(normalized_key);
-
-	Z_ADDREF_P(value);
-	add_assoc_zval(data, Z_STRVAL_P(normalized_key), value);
-
-	//php_printf("slim_helper_set key: %s\n", Z_STRVAL_P(normalized_key));
+	INIT_CALL_CLASS_USER_FUNCTION_PARAMS("normalizekey", function_name, retval_ptr);
+	if(CALL_CLASS_USER_FUNCTION(function_name, retval_ptr, params) == SUCCESS){
+		//dump_zval(retval_ptr);
+		add_assoc_zval(data, Z_STRVAL_P(retval_ptr), value);
+	}
 
 	RETURN_TRUE;
 }
 
+//TODO:
+PHP_METHOD(slim_helper_set, get)
+{
+	char *key_str;
+	ulong key_len;
+
+	zval *key_pzval,*_default, *data;
+	zval **pzval;
+
+	MAKE_STD_ZVAL(_default);
+	Z_TYPE_P(_default) = IS_NULL;
+
+	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s|z", &key_str, &key_len, &_default) == FAILURE){
+		return;
+	}
+
+	MAKE_STD_ZVAL(key_pzval);
+	ZVAL_STRING(key_pzval, key_str, 1);
+	zval *params[] = {key_pzval};
+
+	INIT_CALL_CLASS_USER_FUNCTION_PARAMS("has", has_function_name, has_retval_ptr);
+	CALL_CLASS_USER_FUNCTION(has_function_name, has_retval_ptr, params);
+
+#if ZEND_DEBUG
+	if(IS_NULL == Z_TYPE_P(has_retval_ptr)){
+		zend_error(E_WARNING, "Slim\\Helper\\Set::has() expects return value to be boolean, NULL given");
+	}
+#endif
+
+	convert_to_boolean(has_retval_ptr);
+	if(Z_BVAL_P(has_retval_ptr)){	// call has() method return true
+
+		//$this->normalizeKey($key);
+		INIT_CALL_CLASS_USER_FUNCTION_PARAMS("normalizekey", nk_function_name, nk_retval_ptr);
+		CALL_CLASS_USER_FUNCTION(nk_function_name, nk_retval_ptr, params);
+
+		data = GET_CLASS_PROPERTY(slim_helper_set_ce, "data");
+
+		//got it
+		if(zend_hash_find(Z_ARRVAL_P(data), key_str, key_len+1, (void **) &pzval) == SUCCESS){
+			if(IS_OBJECT == Z_TYPE_PP(pzval)){
+
+				//TODO:call  class_method(obj, '__invoke')($this) exists call it
+
+				SLIM_STRACE("Slim\\Helper\\Set::get(\"%s\") is Object", key_str);
+
+				RETURN_ZVAL(*pzval, 1, 0);
+			} else {
+				RETURN_ZVAL(*pzval, 1, 0);
+			}
+		}
+	}
+
+	RETURN_ZVAL(_default, 0, 0);
+}
+
+
+PHP_METHOD(slim_helper_set, has)
+{
+	char *key_str;
+	ulong key_len;
+	zval *data;
+
+	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &key_str, &key_len) == FAILURE){
+		return;
+	}
+
+	data = GET_CLASS_PROPERTY(slim_helper_set_ce, "data");
+
+	if(zend_hash_exists(Z_ARRVAL_P(data), key_str, key_len + 1)){
+		RETURN_TRUE;
+	} else {
+		RETURN_FALSE;
+	}
+}
 
 PHP_METHOD(slim_helper_set, replace)
 {
-	zval *items, *key_pzval, *key, *value, *function_name, *retval;
+	zval *items, *key_pzval, *key, *value, *function_name, *retval, *tmp_ppzval;
 	zval **ppzval;
 
 	int key_type;
@@ -190,8 +270,9 @@ PHP_METHOD(slim_helper_set, replace)
 
 	HashTable *items_ht;
 
-	//MAKE_STD_ZVAL(function_name);
-	//ZVAL_STRING(function_name, "set", 1);
+	MAKE_STD_ZVAL(retval);
+	MAKE_STD_ZVAL(function_name);
+	ZVAL_STRING(function_name, "set", 1);
 
 	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "a", &items) == FAILURE){
 		RETURN_FALSE;
@@ -200,10 +281,9 @@ PHP_METHOD(slim_helper_set, replace)
 	items_ht = Z_ARRVAL_P(items);
 	MAKE_STD_ZVAL(key_pzval);
 
-	//zval *params[] = { key_pzval, *ppzval };
+	zval *params[2] = { key_pzval };
 
 	zend_hash_internal_pointer_reset(items_ht);
-
 	while(zend_hash_get_current_data(items_ht, (void **)&ppzval) == SUCCESS){
 
 		zend_hash_get_current_key(items_ht, &str_index, &num_index, 0);  // get array key
@@ -227,13 +307,12 @@ PHP_METHOD(slim_helper_set, replace)
 			continue;
 		}
 
+		tmp_ppzval = *ppzval;
+		zval_copy_ctor(tmp_ppzval);
+		INIT_PZVAL(tmp_ppzval);
+		params[1] = tmp_ppzval;
 
-		//TODO:: call_user_function
-		zend_call_method(&getThis(), slim_helper_set_ce, NULL,
-						ZEND_STRL("set"), NULL, 2, key_pzval, *ppzval TSRMLS_DC);
-
-		//Z_ADDREF_P(function_name);
-		//call_user_function(NULL, &getThis(), function_name, retval, 2, params);
+		call_user_function(NULL, &getThis(), function_name, retval, 2, params);
 
 		zend_hash_move_forward(items_ht);
 	}
@@ -259,10 +338,7 @@ PHP_METHOD(slim_helper_set, getIterator)
 
 	data = GET_CLASS_PROPERTY(slim_helper_set_ce, "data");
 
-	zval *params[] = { data };
-
-	slim_debug(function_name);
-	slim_debug(params[0]);
+	zval *params[1] = { data };
 
 	object_init_ex(return_value, spl_ce_ArrayIterator);
 	call_user_function(NULL, &return_value, function_name, retval, 1, params);
@@ -287,8 +363,17 @@ ZEND_BEGIN_ARG_INFO_EX(slim_helper_set_offset_unset, 0, 0, 1)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO_EX(slim_helper_set_set, 0, 0, 2)
-ZEND_ARG_INFO(0, key)
+	ZEND_ARG_INFO(0, key)
 	ZEND_ARG_INFO(0, value)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(slim_helper_set_get, 0, 0, 2)
+	ZEND_ARG_INFO(0, key)
+	ZEND_ARG_INFO(0, _default)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(slim_helper_set_has, 0, 0, 1)
+	ZEND_ARG_INFO(0, key)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO_EX(slim_helper_set_replace, 0, 0, 1)
@@ -306,16 +391,18 @@ ZEND_BEGIN_ARG_INFO_EX(slim_helper_set_get_iterator, 0, 0, 0)
 ZEND_END_ARG_INFO()
 
 static zend_function_entry slim_helper_set_methods[] = {
-	ZEND_ME(slim_helper_set,    __construct,  	NULL,   ZEND_ACC_PUBLIC|ZEND_ACC_CTOR)
-	ZEND_ME(slim_helper_set,    offsetExists,  	slim_helper_set_offset_exists,   ZEND_ACC_PUBLIC)
-	ZEND_ME(slim_helper_set,    offsetGet,  	slim_helper_set_offset_get,   ZEND_ACC_PUBLIC)
-	ZEND_ME(slim_helper_set,    offsetSet,  	slim_helper_set_offset_set,   ZEND_ACC_PUBLIC)
+	ZEND_ME(slim_helper_set,    __construct,  	NULL,   						ZEND_ACC_PUBLIC|ZEND_ACC_CTOR)
+	ZEND_ME(slim_helper_set,    offsetExists,  	slim_helper_set_offset_exists,	ZEND_ACC_PUBLIC)
+	ZEND_ME(slim_helper_set,    offsetGet,  	slim_helper_set_offset_get,   	ZEND_ACC_PUBLIC)
+	ZEND_ME(slim_helper_set,    offsetSet,  	slim_helper_set_offset_set,   	ZEND_ACC_PUBLIC)
 	ZEND_ME(slim_helper_set,    offsetUnset,  	slim_helper_set_offset_unset,   ZEND_ACC_PUBLIC)
 
-	ZEND_ME(slim_helper_set,    set,  			slim_helper_set_set,   ZEND_ACC_PUBLIC)
-	ZEND_ME(slim_helper_set,    replace,  		slim_helper_set_replace,   ZEND_ACC_PUBLIC)
-	ZEND_ME(slim_helper_set,    normalizeKey,  	slim_helper_set_normalize_key,   ZEND_ACC_PUBLIC)
-	ZEND_ME(slim_helper_set,    count,  		slim_helper_set_count,   ZEND_ACC_PUBLIC)
+	ZEND_ME(slim_helper_set,    set,  			slim_helper_set_set,   			ZEND_ACC_PUBLIC)
+	ZEND_ME(slim_helper_set,    get,  			slim_helper_set_get,   			ZEND_ACC_PUBLIC)
+	ZEND_ME(slim_helper_set,    has,  			slim_helper_set_has,   			ZEND_ACC_PUBLIC)
+	ZEND_ME(slim_helper_set,    replace,  		slim_helper_set_replace,   		ZEND_ACC_PUBLIC)
+	ZEND_ME(slim_helper_set,    normalizeKey,  	slim_helper_set_normalize_key,	ZEND_ACC_PUBLIC)
+	ZEND_ME(slim_helper_set,    count,  		slim_helper_set_count,   		ZEND_ACC_PUBLIC)
 	ZEND_ME(slim_helper_set,    getIterator,  	slim_helper_set_get_iterator,   ZEND_ACC_PUBLIC)
 	NULL, NULL, NULL
 };
@@ -334,6 +421,4 @@ ZEND_MINIT_FUNCTION(slim_helper_set){
 
 	return SUCCESS;
 }
-
-
 

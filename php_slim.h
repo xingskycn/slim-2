@@ -55,7 +55,17 @@ extern zend_module_entry slim_module_entry;
 #define GET_CLASS_PROPERTY(ce, property)  \
 		zend_read_property(ce, getThis(), ZEND_STRL(property), 1 TSRMLS_CC);
 
+#define INIT_CALL_CLASS_USER_FUNCTION_PARAMS(function_name_str, function_name, retval_ptr)	\
+		zval *function_name, *retval_ptr; \
+		MAKE_STD_ZVAL(function_name);	\
+		MAKE_STD_ZVAL(retval_ptr);	\
+		ZVAL_STRING(function_name, function_name_str, 0);
+
+#define CALL_CLASS_USER_FUNCTION(function_name, retval_ptr, params)	\
+		call_user_function(NULL, &getThis(), function_name, retval_ptr, sizeof(params) / sizeof(zval *), params TSRMLS_CC)
+
 void slim_debug(zval* data);
+void dump_zval(zval *data);
 
 #define SLIM_STRACE(str, ...)    \
 	{ php_printf("\nFile: %s \033[34m [Line:%d] \033[0m \nFunction: \033[31m [%s] \033[0m \nTraceInfo:\033[32m "str" \033[0m \n", __FILE__, __LINE__, __FUNCTION__, ##__VA_ARGS__); }

@@ -34,7 +34,7 @@
 /**
  * Call php var_dump()
  */
-void slim_debug(zval* data)
+void slim_debug(zval *data)
 {
 	php_printf("\n------start-------\n");
 
@@ -48,6 +48,11 @@ void slim_debug(zval* data)
     call_user_function(CG(function_table), NULL, function_name, return_value, 1, &params TSRMLS_CC);
 
     php_printf("\n-------end--------\n");
+}
+
+void dump_zval(zval *data)
+{
+	printf("\ntype: %d \nis_ref__gc: %d\nrefcount__gc: %d\n\n", Z_TYPE_P(data), Z_ISREF_P(data), Z_REFCOUNT_P(data));
 }
 
 PHP_MINIT_FUNCTION(slim)
