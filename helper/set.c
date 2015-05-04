@@ -64,26 +64,24 @@ PHP_METHOD(slim_helper_set, __construct)
 
 PHP_METHOD(slim_helper_set, offsetExists)
 {
-	zval *index, *data;
-	int type;
-	zend_bool exists = 0;
+	char *key_str;
+	ulong key_len;
+	zval *key, *data;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z", &index) == FAILURE) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &key_str, key_len) == FAILURE) {
 		return;
 	}
 
-	data = GET_CLASS_PROPERTY(slim_helper_set_ce, "data");
-	type = Z_TYPE_P(index);
+	MAKE_STD_ZVAL(key);
+	ZVAL_STRING(key, key_str, 0);
 
-	if( IS_STRING == type ){
-		exists = zend_hash_exists(Z_ARRVAL_P(data), Z_STRVAL_P(index), Z_STRLEN_P(index));
-	} else if( IS_LONG == type ){
-		exists = zend_hash_index_exists(Z_ARRVAL_P(data), Z_LVAL_P(index));
-	} else {
-		zend_error(E_WARNING, "invalid index, expects long or string");
+	data = GET_CLASS_PROPERTY(slim_helper_set_ce, "data");
+
+	if(zend_hash_exists(Z_ARRVAL_P(data), key_str, key_len + 1)){
+		RETURN_TRUE;
 	}
 
-	RETURN_BOOL(exists);
+	RETURN_FALSE;
 }
 
 
