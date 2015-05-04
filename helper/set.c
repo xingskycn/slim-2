@@ -187,11 +187,33 @@ PHP_METHOD(slim_helper_set, get)
 	char *key_str;
 	ulong key_len;
 
-	zval *key_pzval,*_default, *data;
-	zval **pzval;
+	zval *key_pzval, *_default, *data;
+	zval **ppzval;
+	zval *params_1[1], *params_2[2];
+
+	zval *normalizekey_fun_name,  	*normalizekey_retval_ptr,
+		 *method_exists_fun_name,	*method_exists_retval_ptr,
+		 *has_fun_name, 			*has_retval_ptr,
+		 *__invoke_fun_name,		*__invoke_retval_ptr;
 
 	MAKE_STD_ZVAL(_default);
 	Z_TYPE_P(_default) = IS_NULL;
+
+	MAKE_STD_ZVAL(normalizekey_fun_name);
+	MAKE_STD_ZVAL(normalizekey_retval_ptr);
+	ZVAL_STRING(normalizekey_fun_name, "normalizekey", 0);
+
+	MAKE_STD_ZVAL(method_exists_fun_name);
+	MAKE_STD_ZVAL(method_exists_retval_ptr);
+	ZVAL_STRING(method_exists_fun_name, "method_exists", 0);
+
+	MAKE_STD_ZVAL(has_fun_name);
+	MAKE_STD_ZVAL(has_retval_ptr);
+	ZVAL_STRING(has_fun_name, "has", 0);
+
+	MAKE_STD_ZVAL(__invoke_fun_name);
+	MAKE_STD_ZVAL(__invoke_retval_ptr);
+	ZVAL_STRING(__invoke_fun_name, "__invoke", 0);
 
 	if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s|z", &key_str, &key_len, &_default) == FAILURE){
 		return;
@@ -199,10 +221,9 @@ PHP_METHOD(slim_helper_set, get)
 
 	MAKE_STD_ZVAL(key_pzval);
 	ZVAL_STRING(key_pzval, key_str, 1);
-	zval *params[] = {key_pzval};
+	params_1[0] = key_pzval;
 
-	INIT_CALL_CLASS_USER_FUNCTION_PARAMS("has", has_function_name, has_retval_ptr);
-	CALL_CLASS_USER_FUNCTION(has_function_name, has_retval_ptr, params);
+	call_user_function(NULL, &getThis(), has_fun_name, has_retval_ptr, 1, params_1 TSRMLS_CC);
 
 #if ZEND_DEBUG
 	if(IS_NULL == Z_TYPE_P(has_retval_ptr)){
@@ -211,27 +232,41 @@ PHP_METHOD(slim_helper_set, get)
 #endif
 
 	convert_to_boolean(has_retval_ptr);
-	if(Z_BVAL_P(has_retval_ptr)){	// call has() method return true
+	if(Z_BVAL_P(has_retval_ptr)){	// call $this->has() method return true
 
 		//$this->normalizeKey($key);
-		INIT_CALL_CLASS_USER_FUNCTION_PARAMS("normalizekey", nk_function_name, nk_retval_ptr);
-		CALL_CLASS_USER_FUNCTION(nk_function_name, nk_retval_ptr, params);
+		CALL_CLASS_USER_FUNCTION(normalizekey_fun_name, normalizekey_retval_ptr, params_1);
 
 		data = GET_CLASS_PROPERTY(slim_helper_set_ce, "data");
 
 		//got it
-		if(zend_hash_find(Z_ARRVAL_P(data), key_str, key_len+1, (void **) &pzval) == SUCCESS){
-			if(IS_OBJECT == Z_TYPE_PP(pzval)){
+		if(zend_hash_find(Z_ARRVAL_P(data), Z_STRVAL_P(normalizekey_retval_ptr), Z_STRLEN_P(normalizekey_retval_ptr) + 1, (void **) &ppzval) == SUCCESS){
 
-				//TODO:call  class_method(obj, '__invoke')($this) exists call it
+			if(IS_OBJECT == Z_TYPE_PP(ppzval)){
 
-				SLIM_STRACE("Slim\\Helper\\Set::get(\"%s\") is Object", key_str);
+				//SLIM_STRACE("Slim\\Helper\\Set::get(\"%s\") is Object", Z_STRVAL_P(normalizekey_retval_ptr));
 
-				RETURN_ZVAL(*pzval, 1, 0);
-			} else {
-				RETURN_ZVAL(*pzval, 1, 0);
+				params_2[0] = *ppzval;
+				params_2[1] = __invoke_fun_name;
+				call_user_function(CG(function_table), NULL, method_exists_fun_name, method_exists_retval_ptr, 2, params_2 TSRMLS_CC);
+
+				convert_to_boolean(method_exists_retval_ptr);
+				if(Z_BVAL_P(method_exists_retval_ptr)){ // call method_exists() return true
+					params_1[0] = getThis();
+					call_user_function(NULL, ppzval, __invoke_fun_name, __invoke_retval_ptr, 1, params_1 TSRMLS_CC);
+
+					RETURN_ZVAL(__invoke_retval_ptr, 0, 0);
+
+					//SLIM_STRACE("Slim\\Helper\\Set::get(\"%s\") has __invoke method", Z_STRVAL_P(normalizekey_retval_ptr));
+
+				}
 			}
 		}
+
+
+
+
+		RETURN_ZVAL(*ppzval, 0, 0);
 	}
 
 	RETURN_ZVAL(_default, 0, 0);
