@@ -181,7 +181,7 @@ PHP_METHOD(slim_helper_set, set)
 	RETURN_TRUE;
 }
 
-//TODO:
+
 PHP_METHOD(slim_helper_set, get)
 {
 	char *key_str;
