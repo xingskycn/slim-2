@@ -377,6 +377,15 @@ PHP_METHOD(slim_helper_set, getIterator)
 	call_user_function(NULL, &return_value, function_name, retval, 1, params);
 }
 
+/**
+ * $this->all();
+ */
+PHP_METHOD(slim_helper_set, all)
+{
+	zval *data;
+	data = GET_CLASS_PROPERTY(slim_helper_set_ce, "data");
+	RETURN_ZVAL(data, 0, 0);
+}
 
 ZEND_BEGIN_ARG_INFO_EX(slim_helper_set_offset_exists, 0, 0, 1)
 	ZEND_ARG_INFO(0, offset)
@@ -423,6 +432,9 @@ ZEND_END_ARG_INFO()
 ZEND_BEGIN_ARG_INFO_EX(slim_helper_set_get_iterator, 0, 0, 0)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO_EX(slim_helper_set_get_all, 0, 0, 0)
+ZEND_END_ARG_INFO()
+
 static zend_function_entry slim_helper_set_methods[] = {
 	ZEND_ME(slim_helper_set,    __construct,  	NULL,   						ZEND_ACC_PUBLIC|ZEND_ACC_CTOR)
 	ZEND_ME(slim_helper_set,    offsetExists,  	slim_helper_set_offset_exists,	ZEND_ACC_PUBLIC)
@@ -437,6 +449,7 @@ static zend_function_entry slim_helper_set_methods[] = {
 	ZEND_ME(slim_helper_set,    normalizeKey,  	slim_helper_set_normalize_key,	ZEND_ACC_PUBLIC)
 	ZEND_ME(slim_helper_set,    count,  		slim_helper_set_count,   		ZEND_ACC_PUBLIC)
 	ZEND_ME(slim_helper_set,    getIterator,  	slim_helper_set_get_iterator,   ZEND_ACC_PUBLIC)
+	ZEND_ME(slim_helper_set,    all,  			slim_helper_set_get_all,   		ZEND_ACC_PUBLIC)
 	NULL, NULL, NULL
 };
 
