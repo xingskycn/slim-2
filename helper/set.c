@@ -384,7 +384,7 @@ PHP_METHOD(slim_helper_set, all)
 {
 	zval *data;
 	data = GET_CLASS_PROPERTY(slim_helper_set_ce, "data");
-	RETURN_ZVAL(data, 0, 0);
+	RETURN_ZVAL(data, 1, 0);
 }
 
 ZEND_BEGIN_ARG_INFO_EX(slim_helper_set_offset_exists, 0, 0, 1)
