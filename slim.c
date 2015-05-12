@@ -59,6 +59,7 @@ PHP_MINIT_FUNCTION(slim)
 {
 	SLIM_MODULE_STARTUP(slim_slim);
 	SLIM_MODULE_STARTUP(slim_helper_set);
+	SLIM_MODULE_STARTUP(slim_exception_pass);
 	SLIM_MODULE_STARTUP(slim_log);
 
 	return SUCCESS;
