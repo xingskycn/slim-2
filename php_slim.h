@@ -49,6 +49,11 @@ extern zend_module_entry slim_module_entry;
 		INIT_CLASS_ENTRY(ce, class_name, functions);\
 		class_ce = zend_register_internal_class(&ce TSRMLS_CC);
 
+#define SLIM_INIT_CLASS_EX(class_ce, class_name, functions, parent_ce, parent_name) \
+		zend_class_entry ce;\
+		INIT_CLASS_ENTRY(ce, class_name, functions);\
+		class_ce = zend_register_internal_class_ex(&ce, parent_ce,  parent_name TSRMLS_CC);
+
 #define SLIM_MODULE_STARTUP(module) \
 		ZEND_MODULE_STARTUP_N(module)(INIT_FUNC_ARGS_PASSTHRU);
 
