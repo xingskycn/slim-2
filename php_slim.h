@@ -44,12 +44,12 @@ extern zend_module_entry slim_module_entry;
 		zend_hash_exists(&module_registry, )
 
 
-#define SLIM_INIT_CLASS(class_ce, class_name, functions) \
+#define SLIM_REGISTER_INTERNAL_CLASS(class_ce, class_name, functions) \
 		zend_class_entry ce;\
 		INIT_CLASS_ENTRY(ce, class_name, functions);\
 		class_ce = zend_register_internal_class(&ce TSRMLS_CC);
 
-#define SLIM_INIT_CLASS_EX(class_ce, class_name, functions, parent_ce, parent_name) \
+#define SLIM_REGISTER_INTERNAL_CLASS_EX(class_ce, class_name, functions, parent_ce, parent_name) \
 		zend_class_entry ce;\
 		INIT_CLASS_ENTRY(ce, class_name, functions);\
 		class_ce = zend_register_internal_class_ex(&ce, parent_ce,  parent_name TSRMLS_CC);

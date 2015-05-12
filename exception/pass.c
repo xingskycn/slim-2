@@ -37,7 +37,7 @@ static zend_function_entry slim_exception_pass_methods[] = {
 ZEND_MINIT_FUNCTION(slim_exception_pass){
 
 	//class Pass extends \Exception
-	SLIM_INIT_CLASS_EX(slim_exception_pass_ce, "Slim\\Exception\\Pass", slim_exception_pass_methods,
+	SLIM_REGISTER_INTERNAL_CLASS_EX(slim_exception_pass_ce, "Slim\\Exception\\Pass", slim_exception_pass_methods,
                        zend_exception_get_default(), "Exception");
 
 	return SUCCESS;

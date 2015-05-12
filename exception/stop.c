@@ -37,7 +37,7 @@ static zend_function_entry slim_exception_stop_methods[] = {
 ZEND_MINIT_FUNCTION(slim_exception_stop){
 
 	//class Stop extends \Exception
-	SLIM_INIT_CLASS_EX(slim_exception_stop_ce, "Slim\\Exception\\Stop", slim_exception_stop_methods,
+	SLIM_REGISTER_INTERNAL_CLASS_EX(slim_exception_stop_ce, "Slim\\Exception\\Stop", slim_exception_stop_methods,
 	                       zend_exception_get_default(), "Exception");
 
 	return SUCCESS;

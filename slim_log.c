@@ -129,7 +129,7 @@ static zend_function_entry slim_log_methods[] = {
 
 ZEND_MINIT_FUNCTION(slim_log){
 
-	SLIM_INIT_CLASS(slim_log_ce, "Slim\\Log", slim_log_methods);
+	SLIM_REGISTER_INTERNAL_CLASS(slim_log_ce, "Slim\\Log", slim_log_methods);
 
 	zend_declare_class_constant_long(slim_log_ce, ZEND_STRL("EMERGENCY"), 	1 TSRMLS_CC);
 	zend_declare_class_constant_long(slim_log_ce, ZEND_STRL("ALERT"), 		2 TSRMLS_CC);

@@ -119,7 +119,7 @@ ZEND_MINIT_FUNCTION(slim_slim){
 		REGISTER_LONG_CONSTANT("MCRYPT_RIJNDAEL_256", 0, CONST_CS | CONST_PERSISTENT);
 	}
 
-	SLIM_INIT_CLASS(slim_ce, "Slim\\Slim", slim_methods);
+	SLIM_REGISTER_INTERNAL_CLASS(slim_ce, "Slim\\Slim", slim_methods);
 
 	//public
 	zend_declare_property_null(slim_ce,"container", strlen("container"), ZEND_ACC_PUBLIC TSRMLS_CC);
