@@ -58,7 +58,7 @@ extern zend_module_entry slim_module_entry;
 		ZEND_MODULE_STARTUP_N(module)(INIT_FUNC_ARGS_PASSTHRU);
 
 #define GET_CLASS_PROPERTY(ce, property)  \
-		zend_read_property(ce, getThis(), ZEND_STRL(property), 1 TSRMLS_CC);
+		zend_read_property(ce, getThis(), ZEND_STRL(property), 1 TSRMLS_CC)
 
 #define INIT_CALL_CLASS_USER_FUNCTION_PARAMS(function_name_str, function_name, retval_ptr)	\
 		zval *function_name, *retval_ptr; \
@@ -69,7 +69,7 @@ extern zend_module_entry slim_module_entry;
 #define CALL_CLASS_USER_FUNCTION(function_name, retval_ptr, params)	\
 		call_user_function(NULL, &getThis(), function_name, retval_ptr, sizeof(params) / sizeof(zval *), params TSRMLS_CC)
 
-void slim_debug(zval* data);
+void slim_debug(zval* data, const char *str);
 void dump_zval(zval *data);
 
 #define SLIM_STRACE(str, ...)    \

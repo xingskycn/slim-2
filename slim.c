@@ -34,9 +34,9 @@
 /**
  * Call php var_dump()
  */
-void slim_debug(zval *data)
+void slim_debug(zval *data, const char *str)
 {
-	php_printf("\n------start-------\n");
+	php_printf("\n------start---%s----\n", str);
 
     zval *function_name, *return_value;
     MAKE_STD_ZVAL(function_name);
@@ -47,7 +47,12 @@ void slim_debug(zval *data)
     zval* params = {data};
     call_user_function(CG(function_table), NULL, function_name, return_value, 1, &params TSRMLS_CC);
 
-    php_printf("\n-------end--------\n");
+    dump_zval(data);
+
+    zval_ptr_dtor(&function_name);
+    zval_ptr_dtor(&return_value);
+
+    php_printf("\n-------end---%s-----\n", str);
 }
 
 void dump_zval(zval *data)
